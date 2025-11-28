@@ -16,9 +16,9 @@ spec:
     spec:
       containers:
       - name: mlops-container
-        image: your-image:latest  # Replace with your container image
+        image: karthikasturi/mlops-app:v1  # Replace with your container image
         ports:
-        - containerPort: 8080  # Replace with your application port
+        - containerPort: 5000  # Replace with your application port
         resources:
           limits:
             memory: "512Mi"
@@ -38,5 +38,5 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 8080  # Should match containerPort
+    targetPort: 5000  # Should match containerPort
     nodePort: 30080  # Optional: specify port in range 30000-32767

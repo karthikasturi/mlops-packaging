@@ -38,7 +38,7 @@ def train_model():
     print(classification_report(y_test, y_pred, target_names=data.target_names))
     
     # Save the model
-    model_path = 'model.pkl'
+    model_path = '../model/model.pkl'
     with open(model_path, 'wb') as f:
         pickle.dump(model, f)
     

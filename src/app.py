@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Load the model
-MODEL_PATH = 'model.pkl'
+MODEL_PATH = '../model/model.pkl'
 model = None
 
 def load_model():

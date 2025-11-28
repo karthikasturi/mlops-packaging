@@ -24,7 +24,7 @@ cd src
 python train.py
 cd ..
 ```
-This creates `model.pkl` in the src directory.
+This creates `model.pkl` in the `model/` directory.
 
 ### 3. Build Docker Image
 ```bash
