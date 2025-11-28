@@ -80,7 +80,7 @@ def simulate_drift_detection():
     print("\n2. Simulating new data with potential drift...")
     X_new = X_test.copy()
     # Add random noise to simulate drift
-    noise_level = 0.1
+    noise_level = 5
     X_new = X_new + np.random.normal(0, noise_level * X_new.std(axis=0), X_new.shape)
     
     # Check for data drift
