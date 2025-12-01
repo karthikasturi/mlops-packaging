@@ -1,0 +1,74 @@
+services:
+  model-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: house-rental-predictor
+    ports:
+      - "5003:5002"
+    environment:
+      - MODEL_URI=models:/HouseRentalPredictor/1
+      - MLFLOW_TRACKING_URI=http://localhost:5001
+    networks:
+      - ml-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - ml-network
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro'
+    networks:
+      - ml-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      # - ./grafana_dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+    networks:
+      - ml-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+networks:
+  ml-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

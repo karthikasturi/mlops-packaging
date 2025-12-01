@@ -1,0 +1,38 @@
+{
+  "dataframe_split": {
+    "columns": [
+      "area_sqft",
+      "bedrooms",
+      "bathrooms",
+      "parking",
+      "age_years",
+      "floor",
+      "has_gym",
+      "has_pool",
+      "price_per_sqft",
+      "room_bath_ratio",
+      "total_rooms",
+      "amenities_score",
+      "is_new",
+      "is_spacious"
+    ],
+    "data": [
+      [
+        1500.0,
+        2.0,
+        1.5,
+        1.0,
+        5.0,
+        3.0,
+        1.0,
+        0.0,
+        1.2,
+        1.33,
+        3.5,
+        2.0,
+        1.0,
+        1.0
+      ]
+    ]
+  }
+}
