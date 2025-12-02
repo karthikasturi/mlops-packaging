@@ -5,7 +5,7 @@ global:
 scrape_configs:
   - job_name: 'mlflow-model'
     static_configs:
-      - targets: ['model-server:5003']
+      - targets: ['model-server:5002']
     metrics_path: '/metrics'
 
   - job_name: 'node-exporter'

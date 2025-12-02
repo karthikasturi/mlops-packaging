@@ -5,15 +5,12 @@ import time
 import os
 import pickle
 import numpy as np
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
-import mlflow
 import psutil
-
-# Initialize FastAPI app
-app = FastAPI(title="House Rental Predictor", version="1.0.0")
 
 # Prometheus metrics
 REQUEST_COUNT = Counter(
@@ -54,33 +51,21 @@ ACTIVE_REQUESTS = Gauge(
     'Number of requests currently being processed'
 )
 
-# Model loading
-MODEL_URI = os.getenv("MODEL_URI", "models:/HouseRentalPredictor/1")
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
-
+# Model configuration
+MODEL_PATH = "/app/house_rental_best_model.pkl"
 model = None
-model_version = None
+model_version = "1.0"
 
 def load_model():
-    """Load MLflow model"""
-    global model, model_version
+    """Load trained model from pickle file"""
+    global model
     try:
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-        model = mlflow.sklearn.load_model(MODEL_URI)
-        model_version = MODEL_URI.split("/")[-1]
-        print(f"Model loaded successfully: {MODEL_URI}")
+        with open(MODEL_PATH, 'rb') as f:
+            model = pickle.load(f)
+        print(f"Model loaded successfully from: {MODEL_PATH}")
     except Exception as e:
         print(f"Error loading model: {e}")
-        # Try loading from local pickle file as fallback
-        try:
-            pickle_path = "/app/house_rental_best_model.pkl"
-            with open(pickle_path, 'rb') as f:
-                model = pickle.load(f)
-            model_version = "local"
-            print(f"Model loaded from local pickle: {pickle_path}")
-        except Exception as pickle_error:
-            print(f"Error loading local model: {pickle_error}")
-            raise
+        raise
 
 # Request/Response models
 class PredictionRequest(BaseModel):
@@ -103,10 +88,15 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     model_version: str
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize model on startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize model on startup and cleanup on shutdown"""
     load_model()
+    yield
+    # Cleanup if needed
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(title="House Rental Predictor", version="1.0.0", lifespan=lifespan)
     
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -187,9 +177,8 @@ async def model_info():
     """Get model information"""
     REQUEST_COUNT.labels(endpoint='/info', http_status='200').inc()
     return {
-        "model_uri": MODEL_URI,
+        "model_path": MODEL_PATH,
         "model_version": model_version,
-        "tracking_uri": MLFLOW_TRACKING_URI,
         "model_loaded": model is not None
     }
 

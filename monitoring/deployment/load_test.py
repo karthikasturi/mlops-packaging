@@ -40,7 +40,7 @@ def make_prediction(url, data, request_num):
             'timestamp': datetime.now().isoformat()
         }
 
-def run_load_test(url="http://localhost:5002/invocations", 
+def run_load_test(url="http://localhost:5003/invocations", 
                   num_requests=100, 
                   concurrency=10):
     """

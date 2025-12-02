@@ -405,7 +405,7 @@ def main():
     # Run the pipeline
     train_data, test_data, train_meta, test_meta = ingestion.run_data_ingestion_pipeline(
         n_samples=1000,
-        save_path='monitoring/data'
+        save_path='data'
     )
     
     print("\n" + "=" * 70)

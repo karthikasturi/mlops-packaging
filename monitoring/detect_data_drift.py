@@ -159,7 +159,7 @@ class DataDriftDetector:
                 }
             }
             
-            drift_summary_path = 'monitoring/drift_summary.json'
+            drift_summary_path = 'drift_summary.json'
             with open(drift_summary_path, 'w') as f:
                 json.dump(drift_summary, f, indent=2)
             

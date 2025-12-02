@@ -33,8 +33,8 @@ def train_model_with_versioned_data():
     print("\n📥 Loading versioned training data...")
     
     try:
-        train_df = pd.read_csv('monitoring/data/house_rental_train_processed.csv')
-        test_df = pd.read_csv('monitoring/data/house_rental_test_processed.csv')
+        train_df = pd.read_csv('data/house_rental_train_processed.csv')
+        test_df = pd.read_csv('data/house_rental_test_processed.csv')
         
         print(f"✓ Train data: {train_df.shape}")
         print(f"✓ Test data: {test_df.shape}")
@@ -122,8 +122,8 @@ def train_model_with_versioned_data():
             'importance': model.feature_importances_
         }).sort_values('importance', ascending=False)
         
-        feature_importance.to_csv('monitoring/feature_importance.csv', index=False)
-        mlflow.log_artifact('monitoring/feature_importance.csv', artifact_path="model_analysis")
+        feature_importance.to_csv('feature_importance.csv', index=False)
+        mlflow.log_artifact('feature_importance.csv', artifact_path="model_analysis")
         
         # Set tags
         mlflow.set_tag("model_type", "regression")
@@ -176,7 +176,7 @@ def run_complete_pipeline():
         ingestion = HouseRentalDataIngestion()
         train_data, test_data, train_meta, test_meta = ingestion.run_data_ingestion_pipeline(
             n_samples=1000,
-            save_path='monitoring/data'
+            save_path='data'
         )
         
     except Exception as e:
@@ -226,13 +226,13 @@ def run_complete_pipeline():
     print("   Open: http://localhost:5001")
     
     print("\n📁 Generated Files:")
-    print("   - monitoring/data/house_rental_raw.csv")
-    print("   - monitoring/data/house_rental_train_processed.csv")
-    print("   - monitoring/data/house_rental_test_processed.csv")
-    print("   - monitoring/data/preprocessing_params.json")
-    print("   - monitoring/data/train_metadata.json")
-    print("   - monitoring/data/test_metadata.json")
-    print("   - monitoring/feature_importance.csv")
+    print("   - data/house_rental_raw.csv")
+    print("   - data/house_rental_train_processed.csv")
+    print("   - data/house_rental_test_processed.csv")
+    print("   - data/preprocessing_params.json")
+    print("   - data/train_metadata.json")
+    print("   - data/test_metadata.json")
+    print("   - feature_importance.csv")
     
     print("\n📚 Next Steps:")
     print("   1. Explore the MLflow UI to see all logged experiments")

@@ -42,7 +42,7 @@ class HouseRentalModelTrainer:
         mlflow.set_experiment(experiment_name)
         self.client = MlflowClient()
         
-    def load_data(self, data_path='monitoring/data'):
+    def load_data(self, data_path='data'):
         """
         Load preprocessed training and test data
         
@@ -367,7 +367,7 @@ class HouseRentalModelTrainer:
             return model, test_metrics, run_id
     
     def save_model_pickle(self, model, feature_names, model_name='best_model', 
-                         save_path='monitoring/models'):
+                         save_path='models'):
         """
         Save model as pickle file for deployment
         
@@ -643,7 +643,7 @@ def run_training_pipeline():
         best_model, 
         feature_names,
         model_name='house_rental_best_model',
-        save_path='monitoring/models'
+        save_path='models'
     )
     
     # Register best model
@@ -722,12 +722,12 @@ def demonstrate_model_inference():
     print("=" * 70)
     
     # Load model
-    model_package = load_model_from_pickle('monitoring/models/house_rental_best_model.pkl')
+    model_package = load_model_from_pickle('models/house_rental_best_model.pkl')
     model = model_package['model']
     feature_names = model_package['feature_names']
     
     # Load test data
-    test_df = pd.read_csv('monitoring/data/house_rental_test_processed.csv')
+    test_df = pd.read_csv('data/house_rental_test_processed.csv')
     X_test = test_df[feature_names]
     y_test = test_df['rent']
     

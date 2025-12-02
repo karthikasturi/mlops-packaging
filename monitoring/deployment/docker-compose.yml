@@ -1,19 +1,16 @@
 services:
   model-server:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: deployment/Dockerfile
     container_name: house-rental-predictor
     ports:
       - "5003:5002"
-    environment:
-      - MODEL_URI=models:/HouseRentalPredictor/1
-      - MLFLOW_TRACKING_URI=http://localhost:5001
     networks:
       - ml-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -58,7 +55,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      # - ./grafana_dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+      - ./grafana_dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
     networks:
       - ml-network
     restart: unless-stopped
