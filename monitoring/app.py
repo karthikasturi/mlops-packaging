@@ -55,28 +55,47 @@ ACTIVE_REQUESTS = Gauge(
 MODEL_PATH = "/app/house_rental_best_model.pkl"
 model = None
 model_version = "1.0"
+feature_names = None
 
 def load_model():
     """Load trained model from pickle file"""
-    global model
+    global model, model_version, feature_names
     try:
         with open(MODEL_PATH, 'rb') as f:
-            model = pickle.load(f)
-        print(f"Model loaded successfully from: {MODEL_PATH}")
+            model_package = pickle.load(f)
+        
+        # Handle both dict package and direct model
+        if isinstance(model_package, dict):
+            model = model_package['model']
+            feature_names = model_package.get('feature_names', None)
+            model_version = model_package.get('version', '1.0')
+            print(f"Model loaded successfully from package: {MODEL_PATH}")
+            print(f"Model type: {model_package.get('model_type', 'unknown')}")
+            print(f"Features: {len(feature_names) if feature_names else 'unknown'}")
+        else:
+            model = model_package
+            print(f"Model loaded successfully (direct): {MODEL_PATH}")
+        
     except Exception as e:
         print(f"Error loading model: {e}")
         raise
 
 # Request/Response models
 class PredictionRequest(BaseModel):
-    sqft: float
+    area_sqft: float
     bedrooms: int
     bathrooms: int
-    location_score: float
-    year_built: int
-    has_parking: int
+    parking: int
+    age_years: int
+    floor: int
     has_gym: int
-    has_garden: int
+    has_pool: int
+    price_per_sqft: float
+    room_bath_ratio: float
+    total_rooms: int
+    amenities_score: float
+    is_new: int
+    is_spacious: int
 
 class PredictionResponse(BaseModel):
     prediction: float
@@ -120,16 +139,22 @@ async def predict(request: PredictionRequest):
             REQUEST_COUNT.labels(endpoint='/predict', http_status='500').inc()
             raise HTTPException(status_code=500, detail="Model not loaded")
         
-        # Prepare input features
+        # Prepare input features in the correct order
         features = np.array([[
-            request.sqft,
+            request.area_sqft,
             request.bedrooms,
             request.bathrooms,
-            request.location_score,
-            request.year_built,
-            request.has_parking,
+            request.parking,
+            request.age_years,
+            request.floor,
             request.has_gym,
-            request.has_garden
+            request.has_pool,
+            request.price_per_sqft,
+            request.room_bath_ratio,
+            request.total_rooms,
+            request.amenities_score,
+            request.is_new,
+            request.is_spacious
         ]])
         
         # Make prediction

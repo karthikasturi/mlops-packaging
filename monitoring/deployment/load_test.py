@@ -9,9 +9,16 @@ import concurrent.futures
 import statistics
 from datetime import datetime
 
-def make_prediction(url, data, request_num):
+def make_prediction(url, data, request_num, verbose=False):
     """Make a single prediction request"""
     start_time = time.time()
+    
+    if verbose:
+        print(f"\n{'─' * 60}")
+        print(f"🔄 Request #{request_num}")
+        print(f"{'─' * 60}")
+        print(f"📍 URL: {url}")
+        print(f"📤 Payload: {data}")
     
     try:
         response = requests.post(
@@ -23,26 +30,49 @@ def make_prediction(url, data, request_num):
         
         latency = (time.time() - start_time) * 1000  # Convert to ms
         
+        if verbose:
+            status_icon = "✅" if response.status_code == 200 else "❌"
+            print(f"\n{status_icon} Response:")
+            print(f"   Status Code: {response.status_code}")
+            print(f"   Latency: {latency:.2f} ms")
+            print(f"   Content Length: {len(response.content)} bytes")
+            
+            try:
+                response_json = response.json()
+                print(f"   Response Body: {response_json}")
+            except:
+                print(f"   Response Body (text): {response.text[:200]}...")
+        
         return {
             'request_num': request_num,
             'status_code': response.status_code,
             'latency_ms': latency,
             'success': response.status_code == 200,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'response_body': response.text[:500] if response.status_code != 200 else None
         }
     except Exception as e:
+        latency = (time.time() - start_time) * 1000
+        
+        if verbose:
+            print(f"\n❌ Exception:")
+            print(f"   Type: {type(e).__name__}")
+            print(f"   Message: {str(e)}")
+            print(f"   Latency: {latency:.2f} ms")
+        
         return {
             'request_num': request_num,
             'status_code': 0,
-            'latency_ms': (time.time() - start_time) * 1000,
+            'latency_ms': latency,
             'success': False,
-            'error': str(e),
+            'error': f"{type(e).__name__}: {str(e)}",
             'timestamp': datetime.now().isoformat()
         }
 
-def run_load_test(url="http://localhost:5003/invocations", 
+def run_load_test(url="http://localhost:5003/predict", 
                   num_requests=100, 
-                  concurrency=10):
+                  concurrency=10,
+                  verbose=False):
     """
     Run load test on model server
     
@@ -50,6 +80,7 @@ def run_load_test(url="http://localhost:5003/invocations",
         url: Prediction endpoint URL
         num_requests: Total number of requests
         concurrency: Number of concurrent requests
+        verbose: Print detailed request/response info
     """
     print(f"\n{'=' * 70}")
     print("LOAD TESTING MODEL SERVER")
@@ -59,16 +90,22 @@ def run_load_test(url="http://localhost:5003/invocations",
     print(f"Concurrency: {concurrency}")
     print()
     
-    # Sample data
+    # Sample data - matches the house rental model's expected features (14 features)
     sample_data = {
-        "dataframe_split": {
-            "columns": [
-                "area_sqft", "bedrooms", "bathrooms", "parking", "age_years",
-                "floor", "has_gym", "has_pool", "price_per_sqft", "room_bath_ratio",
-                "total_rooms", "amenities_score", "is_new", "is_spacious"
-            ],
-            "data": [[1500.0, 2.0, 1.5, 1.0, 5.0, 3.0, 1.0, 0.0, 1.2, 1.33, 3.5, 2.0, 1.0, 1.0]]
-        }
+        "area_sqft": 1200.0,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "parking": 1,
+        "age_years": 10,
+        "floor": 3,
+        "has_gym": 1,
+        "has_pool": 0,
+        "price_per_sqft": 25.5,
+        "room_bath_ratio": 1.0,
+        "total_rooms": 4,
+        "amenities_score": 8.5,
+        "is_new": 0,
+        "is_spacious": 1
     }
     
     results = []
@@ -77,7 +114,7 @@ def run_load_test(url="http://localhost:5003/invocations",
     # Execute requests with thread pool
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
         futures = [
-            executor.submit(make_prediction, url, sample_data, i)
+            executor.submit(make_prediction, url, sample_data, i, verbose and i < 3)
             for i in range(num_requests)
         ]
         
@@ -85,8 +122,16 @@ def run_load_test(url="http://localhost:5003/invocations",
             result = future.result()
             results.append(result)
             
-            if len(results) % 10 == 0:
-                print(f"Progress: {len(results)}/{num_requests} requests completed")
+            # Print inline status for each request
+            status_icon = "✅" if result['success'] else "❌"
+            status_msg = f"HTTP {result['status_code']}"
+            if not result['success'] and result.get('error'):
+                status_msg = result['error'][:50]
+            
+            print(f"{status_icon} Request #{result['request_num']:3d} | {status_msg:50s} | {result['latency_ms']:6.1f}ms")
+            
+            if len(results) % 10 == 0 and not verbose:
+                print(f"\n📊 Progress: {len(results)}/{num_requests} requests completed\n")
     
     total_time = time.time() - start_time
     
@@ -126,14 +171,33 @@ def run_load_test(url="http://localhost:5003/invocations",
         print(f"   P99: {p99:.2f} ms")
     
     if failed:
-        print(f"\n❌ Error Summary:")
+        print(f"\n❌ Error Details:")
+        print(f"{'─' * 70}")
+        
+        # Group errors by type
         error_types = {}
+        error_examples = {}
         for f in failed:
             error = f.get('error', f'HTTP {f.get("status_code", "unknown")}')
             error_types[error] = error_types.get(error, 0) + 1
+            if error not in error_examples:
+                error_examples[error] = {
+                    'request_num': f['request_num'],
+                    'timestamp': f['timestamp'],
+                    'response_body': f.get('response_body', 'N/A')
+                }
         
-        for error, count in error_types.items():
-            print(f"   {error}: {count}")
+        for error, count in sorted(error_types.items(), key=lambda x: x[1], reverse=True):
+            print(f"\n   Error: {error}")
+            print(f"   Count: {count} ({count/len(failed)*100:.1f}% of failures)")
+            
+            example = error_examples[error]
+            print(f"   Example Request: #{example['request_num']}")
+            print(f"   Timestamp: {example['timestamp']}")
+            if example['response_body'] and example['response_body'] != 'N/A':
+                print(f"   Response: {example['response_body'][:200]}")
+        
+        print(f"\n{'─' * 70}")
     
     print(f"\n{'=' * 70}")
 
@@ -143,5 +207,9 @@ if __name__ == "__main__":
     # Parse command line arguments
     num_requests = int(sys.argv[1]) if len(sys.argv) > 1 else 100
     concurrency = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+    verbose = '--verbose' in sys.argv or '-v' in sys.argv
     
-    run_load_test(num_requests=num_requests, concurrency=concurrency)
+    print("\n💡 Usage: python load_test.py [num_requests] [concurrency] [--verbose/-v]")
+    print("   Example: python load_test.py 100 10 --verbose\n")
+    
+    run_load_test(num_requests=num_requests, concurrency=concurrency, verbose=verbose)
